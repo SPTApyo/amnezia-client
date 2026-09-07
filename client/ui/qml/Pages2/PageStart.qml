@@ -18,6 +18,14 @@ PageType {
     property bool isControlsDisabled: false
     property bool isTabBarDisabled: false
 
+    // Shared visibility for the navigation, whichever shape it takes on this platform.
+    property bool isNavVisible: true
+
+    // Desktop keeps the content in a centred column instead of stretching it across
+    // the whole window, which is what makes the phone layout look wrong on a big screen.
+    readonly property int maxContentWidth: 720
+    readonly property int sideBarWidth: 72
+
     Connections {
         objectName: "pageControllerConnection"
 
@@ -25,10 +33,10 @@ PageType {
 
         function onGoToPageHome() {
             if (PageController.isStartPageVisible()) {
-                tabBar.visible = false
+                root.isNavVisible = false
                 tabBarStackView.goToTabBarPage(PageEnum.PageSetupWizardStart)
             } else {
-                tabBar.visible = true
+                root.isNavVisible = true
                 tabBar.setCurrentIndex(0)
                 tabBarStackView.goToTabBarPage(PageEnum.PageHome)
             }
@@ -271,9 +279,10 @@ PageType {
         objectName: "tabBarStackView"
 
         anchors.top: parent.top
-        anchors.right: parent.right
-        anchors.left: parent.left
         anchors.bottom: tabBar.top
+
+        width: Math.min(root.width - sideBar.width, GC.isDesktop() ? root.maxContentWidth : root.width)
+        x: sideBar.width + Math.max(0, (root.width - sideBar.width - width) / 2)
 
         enabled: !root.isControlsDisabled
 
@@ -286,10 +295,10 @@ PageType {
         Component.onCompleted: {
             var pagePath
             if (PageController.isStartPageVisible()) {
-                tabBar.visible = false
+                root.isNavVisible = false
                 pagePath = PageController.getPagePath(PageEnum.PageSetupWizardStart)
             } else {
-                tabBar.visible = true
+                root.isNavVisible = true
                 pagePath = PageController.getPagePath(PageEnum.PageHome)
                 ServersUiController.setProcessedServerId(ServersUiController.defaultServerId)
             }
@@ -316,6 +325,74 @@ PageType {
         }
     }
 
+    // Desktop navigation rail. It mirrors the tab bar's state and rules through
+    // bindings rather than restating them, so the two cannot drift apart.
+    Rectangle {
+        id: sideBar
+        objectName: "sideBar"
+
+        visible: GC.isDesktop() && root.isNavVisible
+        width: visible ? root.sideBarWidth : 0
+
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+
+        color: AmneziaStyle.color.onyxBlack
+
+        enabled: !root.isControlsDisabled && !root.isTabBarDisabled
+
+        Rectangle {
+            anchors.right: parent.right
+            width: 1
+            height: parent.height
+            color: AmneziaStyle.color.slateGray
+        }
+
+        Column {
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: parent.top
+            anchors.topMargin: 24
+
+            spacing: 8
+
+            TabImageButtonType {
+                objectName: "sideBarHomeButton"
+
+                isSelected: tabBar.currentIndex === 0
+                image: homeTabButton.image
+                clickedFunc: homeTabButton.clickedFunc
+            }
+
+            TabImageButtonType {
+                objectName: "sideBarShareButton"
+
+                visible: shareTabButton.visible
+                height: visible ? implicitHeight : 0
+
+                isSelected: tabBar.currentIndex === 1
+                image: shareTabButton.image
+                clickedFunc: shareTabButton.clickedFunc
+            }
+
+            TabImageButtonType {
+                objectName: "sideBarSettingsButton"
+
+                isSelected: tabBar.currentIndex === 2
+                image: settingsTabButton.image
+                clickedFunc: settingsTabButton.clickedFunc
+            }
+
+            TabImageButtonType {
+                objectName: "sideBarPlusButton"
+
+                isSelected: tabBar.currentIndex === 3
+                image: plusTabButton.image
+                clickedFunc: plusTabButton.clickedFunc
+            }
+        }
+    }
+
     TabBar {
         id: tabBar
         objectName: "tabBar"
@@ -323,6 +400,8 @@ PageType {
         anchors.right: parent.right
         anchors.left: parent.left
         anchors.bottom: parent.bottom
+
+        visible: !GC.isDesktop() && root.isNavVisible
 
         // Also adjust TabBar position when keyboard appears (Android 14+ workaround)
         anchors.bottomMargin: PageController.imeHeight

@@ -54,12 +54,15 @@ Window  {
     }
 
     visible: !GC.isDesktop()
-    width: GC.screenWidth
-    height: GC.screenHeight
-    minimumWidth: GC.isDesktop() ? 360 : 0
-    minimumHeight: GC.isDesktop() ? 640 : 0
-    maximumWidth: 600
-    maximumHeight: 800
+
+    // Desktop opens on a window a desktop user expects and stays resizable. The narrow
+    // phone geometry is kept for mobile, where the window is full screen anyway.
+    width: GC.isDesktop() ? 1000 : GC.screenWidth
+    height: GC.isDesktop() ? 700 : GC.screenHeight
+    minimumWidth: GC.isDesktop() ? 720 : 0
+    minimumHeight: GC.isDesktop() ? 560 : 0
+    maximumWidth: GC.isDesktop() ? 16777215 : 600
+    maximumHeight: GC.isDesktop() ? 16777215 : 800
 
     color: AmneziaStyle.color.midnightBlack
 
